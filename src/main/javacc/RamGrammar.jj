@@ -43,10 +43,10 @@ SKIP : {
 interact in the parsing process, but can be accessed from the parser. */
 SPECIAL_TOKEN:
 {
-    //Accepts single style line comment with white spaces, numbers, uppercase letters , and lowercase letters
+    //Accepts single style line comment with white spaces, numbers, uppercase letters, lowercase letters, and some special characters.
     <SINGLELINE_COMMENT: "//" (<GREATERTHAN> | <LESSTHAN> | <EXCLAMATION> | "'" | " " | ["a"-"z"] | ["A"-"Z"] | ["0"-"9"])*>
 
-    //Accepts multiple style line comments with white spaces, numbers, uppercase letters , lowercase letters, and astriks
+    //Accepts single style line comment with white spaces, numbers, uppercase letters, lowercase letters, and some special characters.
     | <MULTILINE_COMMENT: "/*" (<DOT> | "\"" | <MINUS> | <RPAREN> | <LPAREN> | <COMMA> | <TIMES> | <GREATERTHAN> | <LESSTHAN> | <EXCLAMATION> | "'" | " " | ["a"-"z"] | ["A"-"Z"] | ["0"-"9"] | "\r\n" | "\r"| "\n")* "*/">
 }
 
@@ -63,8 +63,8 @@ TOKEN :
       | < RSQPAREN: "]" >
       | < LBRACE: "{" >
       | < RBRACE: "}" >
-      | < LENGTH: "length">
       | < CLASS: "class" >
+      | < EXTEND: "extends">
       | < PUBLIC: "public" >
       | < PRIVATE: "private" >
       | < STATIC: "static" >
@@ -73,9 +73,9 @@ TOKEN :
       | < NEW: "new">
       | < THIS : "this">
       | < RETURN : "return">
-      | < STRING : "String">
-      | < EXTEND: "extends">
+      | < LENGTH: "length">
       | < WHILE : "while">
+      | < STRING : "String">
       | < BOOLEAN : "bool">
       | < INT : "integer">
       | < PRINT : "print">
@@ -136,6 +136,7 @@ void Program() :
     MainClass() ( ClassDeclaration() )*
 }
 
+//Strcuture of the main class in grammer context
 void MainClass() :
 {}
 {
@@ -145,42 +146,45 @@ void MainClass() :
     <RBRACE> <RBRACE>
 }
 
+//Strcuture of a class declartion in grammer context
 void ClassDeclaration() :
 {}
 {
-    <CLASS> Identifier() (<EXTEND> Identifier())?
-    <LBRACE>
-        (VarDeclaration())* (MethodDeclaration())*
-    <RBRACE>
+    <CLASS> Identifier() (<EXTEND> Identifier())? <LBRACE> (VarDeclaration())* (MethodDeclaration())* <RBRACE>
 }
 
+//Strcuture of a variable declartion in grammer context
 void VarDeclaration() :
 {}
 {
     Type() Identifier() <SEMICOLON>
 }
 
+//Strcuture of a method declartion in grammer context
 void MethodDeclaration() :
 {}
 {
+    //Uses the lookahead token to differentiate between a varaible and a statement since both can being with an <IDENTIFIER>
     <PUBLIC> Type() Identifier() <LPAREN> (Type() Identifier()(<COMMA> Type() Identifier())*)? <RPAREN>
-    <LBRACE>
-         (LOOKAHEAD(2) VarDeclaration())* (Statement())* <RETURN> Expression() <SEMICOLON>
-    <RBRACE>
+    <LBRACE> (LOOKAHEAD(2) VarDeclaration())* (Statement())* <RETURN> Expression() <SEMICOLON> <RBRACE>
 }
 
+//Strcuture of types in grammer context
 void Type() :
 {}
 {
+   //Uses the lookahead token to differentiate between an int array and a regular int
    LOOKAHEAD(2) <INT> <LSQPAREN> <RSQPAREN>
    | <BOOLEAN>
    | <INT>
    | Identifier()
 }
 
+//Strcuture of statements in grammer context
 void Statement() :
 {}
 {
+    //Uses the lookahead token to differentiate between a regular assign statement and an array assign statement
     <LBRACE> (Statement()) * <RBRACE>
     | <IF> <LPAREN> Expression() <RPAREN> Statement() <ELSE> Statement()
     | <WHILE> <LPAREN> Expression() <RPAREN> Statement()
@@ -189,17 +193,14 @@ void Statement() :
     | Identifier() <LSQPAREN> Expression() <RSQPAREN> <ASSIGN> Expression() <SEMICOLON>
 }
 
+//Strcuture of expressions in grammer context
 void Expression() :
 {}
 {
-    //Right recursion happened here
-    //  Expression() (<AND> | <LESSTHAN> | <PLUS> | <MINUS> | <TIMES> ) Expression()
-    //| Expression() <LSQPAREN> Expression() <RSQPAREN>
-    //| Expression() <DOT> <LENGTH>
-    //| Expression() <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN>
-
-    //<INTEGER_LITERAL> FullExpression()
-    //NumericalExpression() FullExpression()
+    //Grammer is split into two expressions to avoid left recursion
+    //The rest of the grammer is found in FullExpression()
+    //Uses the lookahead token to differentiate between an ending number and a middle number
+    //Uses the lookahead token to differentiate between a regular consturctor and an array constructor
      LOOKAHEAD(2) <INTEGER_LITERAL> FullExpression()
     | <INTEGER_LITERAL>
     | <TRUE> FullExpression()
@@ -212,10 +213,12 @@ void Expression() :
     | <LPAREN> Expression() <RPAREN> FullExpression()
 }
 
+//Strcuture of full expressions in grammer context
 void FullExpression():
 {}
 {
-        //LOOKAHEAD(2) <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN>
+    //The second set of the grammer rules originated in Expression()
+    //Uses look ahead to differentiate between calling a regular method and calling the .length method
         LOOKAHEAD(2) <DOT> <LENGTH>
     |   <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN> FullExpression()
     |   (<AND> | <LESSTHAN> | <PLUS> | <OR> | <EQUAL> | <MINUS> | <TIMES> ) Expression()
@@ -223,12 +226,14 @@ void FullExpression():
     |   Epsilon()
 }
 
+//Strcuture of identifiers in grammer context
 void Identifier() :
 {}
 {
     <IDENTIFIER>
 }
 
+//Strcuture of the empty string Epsilon
 void Epsilon() : {}
 {
      {}
