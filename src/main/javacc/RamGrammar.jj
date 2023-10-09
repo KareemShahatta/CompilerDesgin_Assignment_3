@@ -30,26 +30,80 @@ PARSER_END(RamParser)
 
 /* The regular expressions here will be skipped during lexical analysis. No
 tokens are constructed from the productions that are defined here. */
-/*SKIP : {
-
-
-}*/
+SKIP : {
+    " "
+      | "\r\n"
+      | "\r"
+      | "\n"
+      | "\t"
+}
 
 
 /* Insert the regular expressions for comments here. Special tokens do not
 interact in the parsing process, but can be accessed from the parser. */
-/*SPECIAL_TOKEN: {
+SPECIAL_TOKEN:
+{
+    //Accepts single style line comment with white spaces, numbers, uppercase letters , and lowercase letters
+    <SINGLELINE_COMMENT: "//" (<GREATERTHAN> | <LESSTHAN> | <EXCLAMATION> | "'" | " " | ["a"-"z"] | ["A"-"Z"] | ["0"-"9"])*>
 
-
-}*/
+    //Accepts multiple style line comments with white spaces, numbers, uppercase letters , lowercase letters, and astriks
+    | <MULTILINE_COMMENT: "/*" (<DOT> | "\"" | <MINUS> | <RPAREN> | <LPAREN> | <COMMA> | <TIMES> | <GREATERTHAN> | <LESSTHAN> | <EXCLAMATION> | "'" | " " | ["a"-"z"] | ["A"-"Z"] | ["0"-"9"] | "\r\n" | "\r"| "\n")* "*/">
+}
 
 
 /* For the regular expressions on the right, the token on the left
 will be returned */
-TOKEN : {
-
-  // fill these in from Project #2
-
+TOKEN :
+{
+        < IF: "if" >
+      | < ELSE: "else" >
+      | < LPAREN: "(" >
+      | < RPAREN: ")" >
+      | < LSQPAREN: "[" >
+      | < RSQPAREN: "]" >
+      | < LBRACE: "{" >
+      | < RBRACE: "}" >
+      | < LENGTH: "length">
+      | < CLASS: "class" >
+      | < PUBLIC: "public" >
+      | < PRIVATE: "private" >
+      | < STATIC: "static" >
+      | < VOID: "void" >
+      | < MAIN: "main" >
+      | < NEW: "new">
+      | < THIS : "this">
+      | < RETURN : "return">
+      | < STRING : "String">
+      | < EXTEND: "extends">
+      | < WHILE : "while">
+      | < BOOLEAN : "bool">
+      | < INT : "integer">
+      | < PRINT : "print">
+      | < PRINTLN : "println">
+      | < FALSE : "false">
+      | < TRUE : "true">
+      | < AND : "and">
+      | < OR : "or">
+      | < EXCLAMATION : "!">
+      | < EQUALITY : "==">
+      | < EQUAL : "eq">
+      | < GREATER_THAN_OR_EQUAL : "ge">
+      | < LESS_THAN_OR_EQUAL : "le">
+      | < GREATERTHAN : ">">
+      | < LESSTHAN : "<">
+      | < TIMES : "*">
+      | < MINUS : "-">
+      | < PLUS : "+">
+      | < ASSIGN: "=">
+      | < PLUSASSIGN : "+=">
+      | < MINUSASSIGN : "-=">
+      | < SEMICOLON : ";">
+      | < COLON : ":">
+      | < DOT: ".">
+      | < COMMA: ",">
+      | < INTEGER_LITERAL: (["0"-"9"])+>
+      | < INTEGER: ("-")?(["0"-"9"])+"."(["0"-"9"])+>
+      | < IDENTIFIER: (["A"-"Z"]|["a"-"z"])("_" | ["A"-"Z"]|["a"-"z"]|["0"-"9"])* >
 }
 
 
@@ -68,18 +122,18 @@ void RamToken():
 {
   <CLASS>  |  <IDENTIFIER> | <LBRACE> | <PUBLIC> | <STATIC> | <VOID> |
   <MAIN> | <LPAREN> | <STRING> | <LSQPAREN> | <RSQPAREN> | <RPAREN> | <RBRACE> |
-  <PLUSEQUALS> | <MINUSEQUALS> | <SEMICOLON> | <RETURN> | <COMMA> | <INTEGER> | <BOOLEAN> | <ASSIGN> |
+  <PLUSASSIGN> | <MINUSASSIGN> | <SEMICOLON> | <RETURN> | <COMMA> | <INTEGER> | <BOOLEAN> | <ASSIGN> |
   <IF> | <ELSE> | <WHILE> | <COLON> | <PRINT> | <PRINTLN> | <AND> |
-  <OR> | <LESSTHAN> | <EQUALITY> | <PLUS> | <MINUS> | <TIMES> |
+  <OR> | <LESSTHAN> | <EQUALITY> | <EQUAL> | <PLUS> | <MINUS> | <TIMES> |
   <DOT> | <LENGTH> | <INTEGER_LITERAL> | <TRUE> | <FALSE> | <THIS> | <NEW> |
-  <EXCLAMATION>
+  <EXCLAMATION> | <EXTEND>
   /* add additional token classes as appropriate */
 }
 
 void Program() :
 {}
 {
-    MainClass() ( ClassDecl() )*
+    MainClass() ( ClassDeclaration() )*
 }
 
 void MainClass() :
@@ -89,5 +143,94 @@ void MainClass() :
     <STRING> <LSQPAREN> <RSQPAREN> <IDENTIFIER> <RPAREN> <LBRACE>
     Statement()
     <RBRACE> <RBRACE>
+}
+
+void ClassDeclaration() :
+{}
+{
+    <CLASS> Identifier() (<EXTEND> Identifier())?
+    <LBRACE>
+        (VarDeclaration())* (MethodDeclaration())*
+    <RBRACE>
+}
+
+void VarDeclaration() :
+{}
+{
+    Type() Identifier() <SEMICOLON>
+}
+
+void MethodDeclaration() :
+{}
+{
+    <PUBLIC> Type() Identifier() <LPAREN> (Type() Identifier()(<COMMA> Type() Identifier())*)? <RPAREN>
+    <LBRACE>
+         (LOOKAHEAD(2) VarDeclaration())* (Statement())* <RETURN> Expression() <SEMICOLON>
+    <RBRACE>
+}
+
+void Type() :
+{}
+{
+   LOOKAHEAD(2) <INT> <LSQPAREN> <RSQPAREN>
+   | <BOOLEAN>
+   | <INT>
+   | Identifier()
+}
+
+void Statement() :
+{}
+{
+    <LBRACE> (Statement()) * <RBRACE>
+    | <IF> <LPAREN> Expression() <RPAREN> Statement() <ELSE> Statement()
+    | <WHILE> <LPAREN> Expression() <RPAREN> Statement()
+    | (<PRINTLN>|<PRINT>) <LPAREN> Expression() <RPAREN> <SEMICOLON>
+    | LOOKAHEAD(2) Identifier() (<ASSIGN> | <PLUSASSIGN> | <MINUSASSIGN> ) Expression() <SEMICOLON>
+    | Identifier() <LSQPAREN> Expression() <RSQPAREN> <ASSIGN> Expression() <SEMICOLON>
+}
+
+void Expression() :
+{}
+{
+    //Right recursion happened here
+    //  Expression() (<AND> | <LESSTHAN> | <PLUS> | <MINUS> | <TIMES> ) Expression()
+    //| Expression() <LSQPAREN> Expression() <RSQPAREN>
+    //| Expression() <DOT> <LENGTH>
+    //| Expression() <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN>
+
+    //<INTEGER_LITERAL> FullExpression()
+    //NumericalExpression() FullExpression()
+     LOOKAHEAD(2) <INTEGER_LITERAL> FullExpression()
+    | <INTEGER_LITERAL>
+    | <TRUE> FullExpression()
+    | <FALSE> FullExpression()
+    | Identifier() FullExpression()
+    | <THIS> FullExpression()
+    | LOOKAHEAD(2) <NEW> <INT> <LSQPAREN> Expression() <RSQPAREN> FullExpression()
+    | <NEW> Identifier() <LPAREN> <RPAREN> FullExpression()
+    | <EXCLAMATION> Expression() FullExpression()
+    | <LPAREN> Expression() <RPAREN> FullExpression()
+}
+
+void FullExpression():
+{}
+{
+        //LOOKAHEAD(2) <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN>
+        LOOKAHEAD(2) <DOT> <LENGTH>
+    |   <DOT> Identifier() <LPAREN> (Expression() (<COMMA> Expression())*)? <RPAREN> FullExpression()
+    |   (<AND> | <LESSTHAN> | <PLUS> | <OR> | <EQUAL> | <MINUS> | <TIMES> ) Expression()
+    |   <LSQPAREN> Expression() <RSQPAREN>
+    |   Epsilon()
+}
+
+void Identifier() :
+{}
+{
+    <IDENTIFIER>
+}
+
+void Epsilon() : {}
+{
+     {}
 }
 
